@@ -1,0 +1,148 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1d41d244-3532-4b1f-9f4a-823ea48d8770",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  // Original 3\n  { json: { competitor: \"Duolingo\", focus: \"Gamification and daily streaks\" } },\n  { json: { competitor: \"Babbel\", focus: \"Practical Conversation and grammar\" } },\n  { json: { competitor: \"Rosetta Stone\", focus: \"Full immersion without translations\" } },\n  // Your requested additions\n  { json: { competitor: \"DuoCards\", focus: \"Flashcards based on browser/video snippets\" } },\n  { json: { competitor: \"Anki\", focus: \"Spaced Repetition System (SRS) for power users\" } },\n  { json: { competitor: \"Google Translate\", focus: \"General utility/speed translation\" } },\n  { json: { competitor: \"DeepL\", focus: \"High-accuracy contextual translation\" } },\n  { json: { competitor: \"Reverso Context\", focus: \"Sentence examples and idiomatic usage\" } },\n  { json: { competitor: \"Memrise\", focus: \"Real-world video clips and vocabulary drills\" } },\n  { json: { competitor: \"Busuu\", focus: \"Structured courses with community feedback\" } },\n  { json: { competitor: \"Pimsleur\", focus: \"Audio-based conversational patterns\" } },\n  { json: { competitor: \"Linguee\", focus: \"Dictionary with bilingual text comparisons\" } },\n  { json: { competitor: \"Drops\", focus: \"Visual-based rapid vocabulary learning\" } },\n  { json: { competitor: \"Clozemaster\", focus: \"Learning vocabulary in context through cloze tests\" } },\n  { json: { competitor: \"Leo Dictionary\", focus: \"German-specific deep-dive dictionary and forums\" } }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "3de3a34f-70b4-4293-ba20-0363e4607033",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Role: Expert Language Learning Product Strategist.\n\nContext: I am building a V1 MVP for an English speaker learning German. The core \"Magic Moment\" is a smart lookup tool that replaces the friction of Google Translate.\n\nInput Data: Here are the competitors analyzed: {{ $json.competitor }}.\n\nProduct Constraints (V1):\n\nInput Method: Text-only keyboard input (no camera/voice).\n\nThe \"Search-to-Dive\" Feature: As a user types a partial word (e.g., \"Hu\"), the app should suggest the full word with its article (\"Der Hund\") and English translation (\"Dog\").\n\nThe Deep-Dive: Once selected, the user gets an instant explanation of forms (plural, case changes) and \"Learn More\" options.\n\nScope: Pure lookup only. No \"Save to List\" or account creation yet.\n\nSimplicity: No integration with external apps.\n\nTask: > 1. Refine the Problem Statement based specifically on the \"Search-to-Deep-Dive\" friction you identified. 2. Draft a User Persona for \"The Intentional German Learner\" who needs this specific deep-dive. 3. List 3 User Stories that focus ONLY on the lookup and deep-dive functionality. 4. Suggest the Target Output Schema (JSON format) that my n8n workflow should return to the frontend to power the \"Der Hund\" suggestion and deep-dive data.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "6560ec30-8015-4dbc-bcb6-d5e19c081618",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2-pro",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2-pro"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        208
+      ],
+      "id": "cb7a46b1-e434-4aea-b666-8ba4d8daf629",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "4YW3VItAheZ7JpQ8",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "competitor"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "aea25959-e123-4daa-ad49-6ed54ad4c787",
+      "name": "Aggregate"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0e6483b8-df6b-420e-bf44-062e48f84982",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca1a8ac6d8234788d67ef405d0f59296737f0e850c10d65f179b1cca0f4a4fc0"
+  },
+  "id": "fixxO1LlweibDD15",
+  "tags": []
+}

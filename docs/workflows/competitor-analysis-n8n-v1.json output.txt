@@ -1,0 +1,218 @@
+## 1) Refined Problem Statement (Search-to-Deep-Dive friction)
+
+English-speaking learners of German repeatedly hit a **two-step friction loop**:
+
+1) **Search friction:** When they type a partial German word (or an inflected form they saw in the wild), existing tools often require a full/accurate query and return results that are:
+- missing the **grammatical gender/article** at the point of discovery,
+- inconsistent about whether they show the **base form (lemma)** vs the **inflected form**,
+- not optimized for **type-ahead** and fast selection.
+
+2) **Deep-dive friction:** After getting a translation, learners must open additional sources to answer the real learning questions:
+- “What’s the **article** and **plural**?”
+- “Why is it **dem Hund / den Hund / des Hundes**?”
+- “Is this noun weak/strong? What patterns apply?”
+This forces context-switching across multiple tools (translator + dictionary + grammar page), breaking flow.
+
+**V1 problem to solve:**  
+Provide a **single, instant “search-to-deep-dive” lookup** where partial typing yields **article + full word + English meaning**, and selecting a result immediately explains the **core inflections and case forms**—so the learner can move from “I saw this word” → “I understand how to use it” without leaving the app.
+
+---
+
+## 2) User Persona — “The Intentional German Learner”
+
+**Name:** Alex (32)  
+**Background:** Native English speaker, B1-ish German, learning for career + life (partner/friends in Germany, travel, or job). Not a “gamified streak” learner; prefers clarity and correctness.  
+**Primary contexts of use:** Reading articles, emails, subtitles, graded readers; writing short messages; looking up words mid-flow.
+
+**Goals**
+- Understand *not just meaning*, but **how to correctly use the word in sentences**.
+- Build reliable mental models: gender, plural, cases, common patterns.
+- Reduce lookup time so reading/writing remains enjoyable.
+
+**Behaviors**
+- Types what they remember (“Hu…”, “Hund…”) or what they saw (“Hunde”, “Hundes”, “dem Hund”).
+- Wants immediate confirmation of **article + meaning** before committing attention.
+- When confused by endings, wants a **quick, structured explanation**, not a long grammar lesson.
+
+**Pain Points with current tools**
+- Google Translate/DeepL: good meaning, weak on **gender + declension clarity** and “why this form”.
+- Dictionaries: good info but slower to navigate; type-ahead often doesn’t prioritize “learner-ready” display (article+translation).
+- Context tools: too much text; hard to extract the inflection rules quickly.
+
+**Success moment (Magic Moment)**
+Alex types **“Hu”**, immediately sees **“der Hund — dog”**, taps it, and instantly understands:  
+plural **Hunde**, genitive **des Hundes**, dative **dem Hund**, accusative **den Hund**—plus a short explanation of what changed and why.
+
+---
+
+## 3) Three User Stories (lookup + deep-dive only)
+
+1) **Type-ahead suggestion with learner-ready display**  
+- *As an intentional German learner,*  
+- *when I type a partial word (“Hu”),*  
+- *I want instant suggestions that include the article and English meaning (“der Hund — dog”),*  
+- *so I can confirm I’m selecting the right word before I tap.*
+
+2) **Inflected-form handling → correct lemma + explanation**  
+- *As an intentional German learner,*  
+- *when I type an inflected form I encountered (“Hundes”, “Hunde”, “dem Hund”),*  
+- *I want the app to map it to the base entry (“der Hund”) and show what the form means (e.g., genitive singular),*  
+- *so I understand what I saw and how it functions grammatically.*
+
+3) **Instant deep-dive for correct usage (cases + plural + pattern)**  
+- *As an intentional German learner,*  
+- *when I select a suggestion,*  
+- *I want an immediate deep-dive view that shows plural and key case forms (Nom/Akk/Dat/Gen) with a brief rule explanation,*  
+- *so I can use the word correctly in my next sentence without opening another tool.*
+
+---
+
+## 4) Target Output Schema (JSON) for n8n → Frontend
+
+Below is a **single response schema** that can power both:
+- **Search-to-Dive suggestions** (type-ahead)
+- **Deep-dive** (when a suggestion is selected)
+
+You can implement it as:
+- one endpoint where `mode = "suggest"` or `mode = "deepDive"`, or
+- one endpoint returning `suggestions` always, and `entry` only when `selectedId` is provided.
+
+### JSON Schema (proposed)
+
+```json
+{
+  "request": {
+    "query": "Hu",
+    "mode": "suggest",
+    "sourceLang": "de",
+    "targetLang": "en",
+    "selectedId": null,
+    "limit": 8
+  },
+  "suggestions": [
+    {
+      "id": "de.noun.hund",
+      "display": "der Hund",
+      "lemma": "Hund",
+      "article": "der",
+      "pos": "noun",
+      "gender": "masculine",
+      "translation": {
+        "primary": "dog",
+        "alternatives": ["hound"]
+      },
+      "match": {
+        "matchedText": "Hu",
+        "matchedField": "lemma",
+        "isInflectedMatch": false
+      },
+      "ranking": {
+        "score": 0.94,
+        "reasons": ["prefix_match", "high_frequency"]
+      }
+    }
+  ],
+  "entry": null,
+  "meta": {
+    "timestamp": "2026-01-02T12:00:00Z",
+    "version": "v1",
+    "cache": {
+      "hit": false,
+      "ttlSeconds": 3600
+    }
+  },
+  "errors": []
+}
+```
+
+### When user selects a suggestion (deep-dive response)
+
+```json
+{
+  "request": {
+    "query": "der Hund",
+    "mode": "deepDive",
+    "sourceLang": "de",
+    "targetLang": "en",
+    "selectedId": "de.noun.hund",
+    "limit": 0
+  },
+  "suggestions": [],
+  "entry": {
+    "id": "de.noun.hund",
+    "headword": {
+      "display": "der Hund",
+      "lemma": "Hund",
+      "article": "der",
+      "pos": "noun",
+      "gender": "masculine",
+      "pronunciation": {
+        "ipa": "[hʊnt]"
+      }
+    },
+    "translation": {
+      "primary": "dog",
+      "alternatives": ["hound"],
+      "senseNotes": []
+    },
+    "inflection": {
+      "plural": {
+        "form": "Hunde",
+        "notes": []
+      },
+      "cases": {
+        "singular": {
+          "nominative": "der Hund",
+          "accusative": "den Hund",
+          "dative": "dem Hund",
+          "genitive": "des Hundes"
+        },
+        "plural": {
+          "nominative": "die Hunde",
+          "accusative": "die Hunde",
+          "dative": "den Hunden",
+          "genitive": "der Hunde"
+        }
+      },
+      "pattern": {
+        "nounClass": "strong",
+        "genitiveEnding": "-(e)s",
+        "dativePluralEnding": "-n",
+        "explanationShort": "Masculine strong noun: genitive singular often adds -(e)s; dative plural typically adds -n if possible."
+      }
+    },
+    "formInsights": [
+      {
+        "observedForm": "Hundes",
+        "analysis": {
+          "lemma": "Hund",
+          "tag": "genitive_singular",
+          "meaningHint": "of the dog"
+        }
+      }
+    ],
+    "learnMore": {
+      "relatedLookups": [
+        { "label": "Plural usage", "query": "die Hunde" },
+        { "label": "Genitive pattern -(e)s", "query": "Genitiv Maskulin -(e)s" }
+      ],
+      "externalLinks": []
+    }
+  },
+  "meta": {
+    "timestamp": "2026-01-02T12:00:05Z",
+    "version": "v1",
+    "cache": {
+      "hit": true,
+      "ttlSeconds": 3600
+    }
+  },
+  "errors": []
+}
+```
+
+### Notes (why these fields matter in V1)
+- `display` is optimized for your UI: **article + lemma** (the “Der Hund” moment).
+- `match.isInflectedMatch` + `formInsights` supports the common learner behavior of typing **Hunde/Hundes/dem Hund** and still getting a clean explanation.
+- `inflection.cases` is the deep-dive core: it answers the “how do I use it” question instantly.
+- `pattern.explanationShort` gives a compact “why” without turning V1 into a full grammar course.
